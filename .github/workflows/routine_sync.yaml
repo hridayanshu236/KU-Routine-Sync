@@ -36,7 +36,7 @@ jobs:
       # Download last_hash.txt from Gist
       - name: Download last_hash.txt from Gist
         env:
-          GIST_ID: <YOUR_GIST_ID>
+          GIST_ID: c4f3499f2b3828ad3db87b2262fc2132
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
           curl -H "Authorization: token $GIST_TOKEN" \
