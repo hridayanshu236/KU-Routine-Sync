@@ -2,7 +2,7 @@ name: KU Routine Sync
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # every 30 minutes
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -33,21 +33,28 @@ jobs:
       - name: Decode token.pkl from secret
         run: echo "${{ secrets.GOOGLE_TOKEN_PKL_B64 }}" | base64 -d > token.pkl
 
-      # Download last_hash.txt artifact if it exists
-      - name: Download last_hash.txt artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: last_hash
-        continue-on-error: true  # in case artifact does not exist yet
+      # Download last_hash.txt from Gist
+      - name: Download last_hash.txt from Gist
+        env:
+          GIST_ID: <YOUR_GIST_ID>
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          curl -H "Authorization: token $GIST_TOKEN" \
+            https://api.github.com/gists/$GIST_ID \
+            | jq -r '.files["last_hash.txt"].content' > last_hash.txt || echo "" > last_hash.txt
 
       - name: Run KU Routine Sync
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: python main.py
 
-      # Upload the updated last_hash.txt as artifact for next run
-      - name: Upload last_hash.txt artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: last_hash
-          path: last_hash.txt
+      # Upload last_hash.txt to Gist
+      - name: Upload last_hash.txt to Gist
+        env:
+          GIST_ID: <YOUR_GIST_ID>
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          CONTENT=$(cat last_hash.txt | jq -Rs .)
+          curl -X PATCH -H "Authorization: token $GIST_TOKEN" \
+            -d "{\"files\": {\"last_hash.txt\": {\"content\": $CONTENT}}}" \
+            https://api.github.com/gists/$GIST_ID
