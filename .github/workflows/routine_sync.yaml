@@ -51,7 +51,7 @@ jobs:
       # Upload last_hash.txt to Gist
       - name: Upload last_hash.txt to Gist
         env:
-          GIST_ID: <YOUR_GIST_ID>
+          GIST_ID: c4f3499f2b3828ad3db87b2262fc2132
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
           CONTENT=$(cat last_hash.txt | jq -Rs .)
