@@ -33,21 +33,21 @@ jobs:
       - name: Decode token.pkl from secret
         run: echo "${{ secrets.GOOGLE_TOKEN_PKL_B64 }}" | base64 -d > token.pkl
 
-      - name: Restore caches
-        uses: actions/cache@v3
+      # Download last_hash.txt artifact if it exists
+      - name: Download last_hash.txt artifact
+        uses: actions/download-artifact@v4
         with:
-          path: |
-            last_hash.txt
-          key: routine-cache
+          name: last_hash
+        continue-on-error: true  # in case artifact does not exist yet
 
       - name: Run KU Routine Sync
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: python main.py
 
-      - name: Save caches
-        uses: actions/cache@v3
+      # Upload the updated last_hash.txt as artifact for next run
+      - name: Upload last_hash.txt artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: |
-            last_hash.txt
-          key: routine-cache
+          name: last_hash
+          path: last_hash.txt
