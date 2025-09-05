@@ -80,11 +80,12 @@ def add_event(service, day, time_range, subject_code, teacher, room):
     print(f" Added {subject_code}: {subject_name} ({teacher}) on {day} {time_range} at {room}")
 
 def clear_future_semester_events(service):
-    """Delete all future events in the semester period starting from today"""
+    """Delete all future events in the semester period starting from today (deduped & error-handled)"""
     from datetime import datetime, timedelta
+    import googleapiclient.errors
 
     tzinfo = pytz.timezone(TIMEZONE)
-    today = datetime.now(tzinfo).date()  # fixed: use datetime.now, not datetime.datetime.now
+    today = datetime.now(tzinfo).date()
     start = tzinfo.localize(datetime(today.year, today.month, today.day))
     end = start + timedelta(weeks=WEEKS)
 
@@ -96,9 +97,18 @@ def clear_future_semester_events(service):
     ).execute()
 
     events = events_result.get("items", [])
+    seen_ids = set()
     for e in events:
-        service.events().delete(calendarId="primary", eventId=e["id"]).execute()
-        print(f"Deleted future event: {e['summary']}")
-
-
-
+        eid = e["id"]
+        if eid in seen_ids:
+            continue  # Don't try to delete the same event more than once
+        seen_ids.add(eid)
+        try:
+            service.events().delete(calendarId="primary", eventId=eid).execute()
+            print(f"Deleted future event: {e['summary']}")
+        except googleapiclient.errors.HttpError as err:
+            if err.resp.status == 410:
+                print(f"Event {e['summary']} already deleted, skipping.")
+            else:
+                print(f"Error deleting event {eid}: {err}")
+                raise  # Only raise for unexpected errors
