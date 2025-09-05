@@ -1,4 +1,6 @@
-import requests, hashlib, os
+import requests
+import hashlib
+import os
 from bs4 import BeautifulSoup
 from get_latest_url import get_latest_routine_url
 
@@ -6,6 +8,9 @@ INSTITUTION = "Kathmandu University, School of Engineering, Department of Comput
 NAME = "III CE-III/II"
 
 def find_target_table(soup):
+    """
+    Finds the table matching the specified INSTITUTION and NAME in the caption.
+    """
     for table in soup.find_all("table"):
         caption = table.find("caption")
         if not caption:
@@ -17,7 +22,20 @@ def find_target_table(soup):
                 return table
     return None
 
+def normalize_table(table):
+    """
+    Removes 'id' and 'class' attributes from the table to avoid hash changes from attribute changes only.
+    """
+    for attr in ['id', 'class']:
+        if attr in table.attrs:
+            del table[attr]
+    return table
+
 def routine_changed():
+    """
+    Checks if the routine table content has changed (ignoring id/class changes).
+    Returns (True, table_html) if changed, (False, table_html) otherwise.
+    """
     # Get the latest routine URL
     URL = get_latest_routine_url()
     html = requests.get(URL).text
@@ -28,7 +46,9 @@ def routine_changed():
     if table is None:
         raise ValueError("Target routine table not found on the page.")
 
-    table_html = str(table)  # convert table to string for hashing
+    # Remove id and class attributes before hashing
+    table = normalize_table(table)
+    table_html = str(table)
     hash_val = hashlib.md5(table_html.encode()).hexdigest()
 
     # Compare with previous hash
