@@ -1,7 +1,5 @@
 from bs4 import BeautifulSoup
 
-TABLE_ID = "table_22"
-
 PERIOD_TIMES = {
     1: "07:00-08:00",
     2: "08:00-09:00",
@@ -14,11 +12,28 @@ PERIOD_TIMES = {
     9: "15:00-16:00",
 }
 
+INSTITUTION = "Kathmandu University, School of Engineering, Department of Computer Science and Engineering"
+NAME = "III CE-III/II"
+
+def find_target_table(soup):
+    for table in soup.find_all("table"):
+        caption = table.find("caption")
+        if not caption:
+            continue
+        institution = caption.find("span", class_="institution")
+        name = caption.find("span", class_="name")
+        if institution and name:
+            if institution.get_text(strip=True) == INSTITUTION and name.get_text(strip=True) == NAME:
+                return table
+    return None
+
 def parse_routine(html):
     soup = BeautifulSoup(html, "html.parser")
-    table = soup.find("table", {"id": TABLE_ID})
-    rows = table.find_all("tr")
+    table = find_target_table(soup)
+    if not table:
+        raise ValueError("Target routine table not found!")
 
+    rows = table.find_all("tr")
     routine = []
 
     for row in rows[1:-1]:  # skip header and footer rows
